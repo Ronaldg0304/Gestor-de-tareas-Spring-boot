@@ -1,7 +1,9 @@
 package com.springboot.gestortareas.gestor_tareas.controller;
 
+import com.springboot.gestortareas.gestor_tareas.DTO.ApiResponse;
 import com.springboot.gestortareas.gestor_tareas.entities.Task;
 import com.springboot.gestortareas.gestor_tareas.services.TaskService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,47 +21,49 @@ public class TaskRestController {
         this.service = service;
     }
 
-    @GetMapping //Método lista tareas
-    public ResponseEntity<List<Task>> getAllTask() {
-        return ResponseEntity.status(HttpStatus.OK).body(service.findAll());
+    @GetMapping //
+    public ResponseEntity<ApiResponse<List<Task>>> getAllTasks() {
+        List<Task> tasks = service.findAll();
+        return ResponseEntity.ok(new ApiResponse<>("Tasks retrieved successfully", tasks));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> detail(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Task>> detail(@PathVariable Long id) {
         Optional<Task> optionalTask = service.findById(id);
-        if (optionalTask.isPresent()) {
-            return ResponseEntity.ok(optionalTask.orElseThrow());
-        }
-        return ResponseEntity.notFound().build();
+        return optionalTask.map(task -> ResponseEntity.ok(new ApiResponse<>("Task found", task))).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>("Task not found", null)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> update(@RequestBody Task task, @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Task>> update(@Valid @RequestBody Task task, @PathVariable Long id) {
         Optional<Task> optionalTask = service.findById(id);
         if (optionalTask.isPresent()) {
-            Task taskDb = optionalTask.orElseThrow();
-            taskDb.setDescription(task.getDescription());
+            Task taskDb = optionalTask.get();
             taskDb.setTitle(task.getTitle());
+            taskDb.setDescription(task.getDescription());
             taskDb.setCompleted(task.isCompleted());
-            return ResponseEntity.status(HttpStatus.CREATED).body(service.save(taskDb));
+            Task updatedTask = service.save(taskDb);
+            return ResponseEntity.ok(new ApiResponse<>("Task updated successfully", updatedTask));
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>("Task not found", null));
     }
 
     @PostMapping
-    public ResponseEntity<Task> create(@RequestBody Task task) {
-        System.out.println("Task received: " + task.getTitle());
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.save(task));
+    public ResponseEntity<ApiResponse<Task>> create(@Valid @RequestBody Task task) {
+        Task savedTask = service.save(task);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>("Task created successfully", savedTask));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Task> delete(@PathVariable Long id) {
-        Optional<Task> optionalTask = service.deleteById(id);
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        Optional<Task> optionalTask = service.findById(id);
         if (optionalTask.isPresent()) {
-            Task taskDeleted = optionalTask.orElseThrow();
-            return ResponseEntity.status(HttpStatus.OK).body(taskDeleted);
+            service.deleteById(id);
+            return ResponseEntity.ok(new ApiResponse<>("Task deleted successfully", null));
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>("Task not found", null));
     }
 
 }

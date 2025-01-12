@@ -1,6 +1,7 @@
 package com.springboot.gestortareas.gestor_tareas.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -18,9 +19,13 @@ public class Task {
 
     private Long id;
 
+    @NotNull(message = "Title cannot be null")
+    @Size(min = 3, max = 100, message = "Title must be between 3 and 50 characters")
     @Column(name = "title", nullable = false, length = 50)
     private String title;
 
+    @NotNull(message = "Description cannot be null")
+    @Size(max = 150, message = "Description cannot exceed 150 characters")
     @Column(name = "description", nullable = false, length = 150)
     private String description;
 
